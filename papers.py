@@ -1,8 +1,13 @@
+from src.arxiv_api import (
+  access_arxiv_api,
+  parse_arxiv_xml
+)
 
 
 def main():
   try:
-    print("Hello World!")
+    response = access_arxiv_api()
+    parse_arxiv_xml(response)
     return 0
 
   except Exception as e:
