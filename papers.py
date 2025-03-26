@@ -1,19 +1,21 @@
 from src.arxiv_api import (
-  access_arxiv_api,
-  parse_arxiv_xml
+  fetch_paper_metadata,
+  download_paper
 )
 
 
 def main():
   try:
-    response = access_arxiv_api()
-    parse_arxiv_xml(response)
+    papers = fetch_paper_metadata()
+    for p in papers:
+      print(p)
+      download_paper(p)
     return 0
 
   except Exception as e:
-    print(f"Error: {e}")
+    print(f'Error: {e}')
     return 1
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

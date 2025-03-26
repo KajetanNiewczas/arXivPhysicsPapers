@@ -1,5 +1,6 @@
 # My custom ignores
 .DS_Store
+papers/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
