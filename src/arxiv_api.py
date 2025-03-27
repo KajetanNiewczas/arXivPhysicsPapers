@@ -2,12 +2,22 @@ import feedparser
 import requests
 import os
 
+from src.tools import (
+  check_gzip,
+  extract_gzip,
+)
+
 
 def fetch_paper_metadata(query='all:electron', max_results=1):
+  '''Fetch metadata for papers from the arXiv API.'''
+
   base_url   = 'http://export.arxiv.org/api/query?'
   start      = 0
   sort_by    = 'submittedDate'
-  sort_order = 'ascending'     # seems like the best way will be to sort ascanding and then start from next entries
+  sort_order = 'ascending'
+  # sort_order = 'descending'
+  # seems like the best way will be to sort ascanding
+  # and then each time start from next entries
   url = '{}search_query={}&start={}&max_results={}&sortBy={}&sortOrder={}'.format(
     base_url, query, start, max_results, sort_by, sort_order)
   feed = feedparser.parse(url)
@@ -30,23 +40,43 @@ def fetch_paper_metadata(query='all:electron', max_results=1):
   return papers
 
 
-def download_paper(paper, save_dir='papers'):
-  os.makedirs(save_dir, exist_ok=True)
+def download_paper(paper):
+  '''Download the source code of a paper from arXiv.'''
 
-  arxiv_id    = paper['arxiv_id']
+  archive_dir = 'papers/archives'
+  os.makedirs(archive_dir, exist_ok=True)
+
   source_url  = paper['source_url']
-  safe_id     = arxiv_id.replace('/', '_')
-  source_path = os.path.join(save_dir, f'{safe_id}_source.tar.gz')
 
   try:
     response = requests.get(source_url, timeout=5)
     if response.ok and len(response.content) > 0:
-      with open(source_path, 'wb') as f:
-        f.write(response.content)
-      print(f'Successfully downloaded {source_path}')
-      return source_path
-  
+      filename = None
+      if 'Content-Disposition' in response.headers:
+        content_disp = response.headers['Content-Disposition']
+        if 'filename=' in content_disp:
+          filename = content_disp.split('filename=')[-1].strip('"')
+          archive_path = os.path.join(archive_dir, filename)
+          with open(archive_path, 'wb') as f:
+            f.write(response.content)
+          print(f'Successfully downloaded {archive_path}')
+          return archive_path
+
   except requests.exceptions.RequestException as e:
     print(f'Error downloading {source_url}: {e}')
     return None
 
+
+def extract_source_tex(archive_path):
+  '''Check if the downloaded file is a gzip archive.
+     If so, extract the source .tex file from the archive.'''
+  
+  extracted_dir = 'papers/extracted'
+  os.makedirs(extracted_dir, exist_ok=True)
+
+  if check_gzip(archive_path):
+    extract_gzip(archive_path, extracted_dir)
+
+    # return extracted_path
+
+  # decompress_gz(archive_path, "test.txt")
