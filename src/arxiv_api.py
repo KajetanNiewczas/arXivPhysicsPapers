@@ -5,17 +5,18 @@ import os
 from src.tools import (
   check_gzip,
   extract_gzip,
+  clear_extracted_folder,
 )
 
 
-def fetch_paper_metadata(query='all:electron', max_results=1):
+def fetch_paper_metadata(query='all:electron', max_results=10):
   '''Fetch metadata for papers from the arXiv API.'''
 
   base_url   = 'http://export.arxiv.org/api/query?'
   start      = 0
   sort_by    = 'submittedDate'
-  sort_order = 'ascending'
-  # sort_order = 'descending'
+  # sort_order = 'ascending'
+  sort_order = 'descending'
   # seems like the best way will be to sort ascanding
   # and then each time start from next entries
   url = '{}search_query={}&start={}&max_results={}&sortBy={}&sortOrder={}'.format(
@@ -67,7 +68,7 @@ def download_paper(paper):
     return None
 
 
-def extract_source_tex(archive_path):
+def get_source_tex(archive_path):
   '''Check if the downloaded file is a gzip archive.
      If so, extract the source .tex file from the archive.'''
   
@@ -75,8 +76,11 @@ def extract_source_tex(archive_path):
   os.makedirs(extracted_dir, exist_ok=True)
 
   if check_gzip(archive_path):
-    extract_gzip(archive_path, extracted_dir)
+    extracted_path = extract_gzip(archive_path, extracted_dir)
+    if extracted_path:
+      clear_extracted_folder(extracted_path)
+      # if source_tex:
+      #   print(f'Successfully extracted {source_tex}')
+      #   return source_tex
 
-    # return extracted_path
-
-  # decompress_gz(archive_path, "test.txt")
+  return None

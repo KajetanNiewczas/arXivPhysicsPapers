@@ -2,6 +2,7 @@ import magic
 import gzip
 import tarfile
 import os
+import shutil
 
 
 def check_gzip(file_path):
@@ -39,7 +40,7 @@ def extract_gzip(gz_file_path, extracted_dir):
           print(f"Extracted contents of {gz_file_path} to {file_dir}")
         # Extraction complete, remove the archive
         os.remove(gz_file_path)
-        return True
+        return file_dir
       except tarfile.TarError:
         # If the file is not a tarball, extract the single file
         original_name = get_original_filename_from_gzip(gz_file_path)
@@ -52,7 +53,7 @@ def extract_gzip(gz_file_path, extracted_dir):
           print(f"Extracted contents of {gz_file_path} to {file_dir}")
         # Extraction complete, remove the archive
         os.remove(gz_file_path)
-        return True
+        return file_dir
   except Exception as e:
     # Something went wrong, remove the archive
     os.remove(gz_file_path)
@@ -74,3 +75,21 @@ def get_original_filename_from_gzip(gz_file_path):
         break
       filename.extend(byte)
   return filename.decode('utf-8') if filename else None
+
+
+def clear_extracted_folder(extracted_path):
+  '''Extract the source .tex file from the folder.'''
+
+  # Get the list of .tex files
+  files_in_folder = os.listdir(extracted_path)
+  tex_files = [f for f in files_in_folder if f.endswith('.tex')]
+
+  # Delete everything else
+  for f in files_in_folder:
+    if f not in tex_files:
+      if os.path.isdir(f):
+        shutil.rmdir(os.path.join(extracted_path, f))
+      else:
+        os.remove(os.path.join(extracted_path, f))
+
+  return True if tex_files else False

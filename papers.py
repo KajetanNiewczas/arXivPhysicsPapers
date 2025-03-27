@@ -1,7 +1,7 @@
 from src.arxiv_api import (
   fetch_paper_metadata,
   download_paper,
-  extract_source_tex,
+  get_source_tex,
 )
 
 
@@ -11,7 +11,7 @@ def main():
     for p in papers:
       print(p)
       archive = download_paper(p)
-      extract_source_tex(archive)
+      get_source_tex(archive)
     return 0
 
   except Exception as e:
