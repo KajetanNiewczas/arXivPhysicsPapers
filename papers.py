@@ -2,6 +2,10 @@ import os
 
 from rich import print
 
+from src.aesthetics import (
+  sep_line,
+  header,
+)
 from src.arxiv_api import (
   fetch_paper_metadata,
   download_paper,
@@ -29,8 +33,8 @@ def main():
                    'title': 'Nuclear Transparency in Monte Carlo Neutrino Event Generators',
                    'source_url': 'https://arxiv.org/src/1902.05618'}]
     for paper in new_papers:
-      print(f'[dim]-[/dim]' * 80)
-      print(f'[bold red]Processing paper: {paper['arxiv_id']} - {paper['title']}[/bold red]')
+      print(sep_line())
+      print(header(f'Processing paper: {paper['arxiv_id']} - {paper['title']}'))
 
       # # Download the paper source code archive
       # archive_name = download_paper(paper, archive_dir)
@@ -41,13 +45,14 @@ def main():
       # paper_name = extract_paper(archive_name, archive_dir, extracted_dir)
       # if not paper_name:
       #   continue
+
       paper_name = 'test'
       # Copy the source .tex file to the sources directory
       source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
       if not source_name:
         continue
 
-    print(f'[dim]-[/dim]' * 80)
+    print(sep_line())
     return 0
 
   except Exception as e:

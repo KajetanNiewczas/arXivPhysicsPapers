@@ -2,7 +2,12 @@ import os
 import gzip
 import tarfile
 
+from rich import print
 import magic
+
+from src.aesthetics import (
+  link,
+)
 
 
 def check_gzip(file_path):
@@ -13,10 +18,10 @@ def check_gzip(file_path):
   mime_type = mime.from_file(file_path)
 
   if "gzip" in mime_type:
-    print(f"File {file_path} is a gzip archive")
+    print(f"File {link(file_path)} is a gzip archive")
     return True
   else:
-    print(f"File {file_path} is an unknown type")
+    print(f"File {link(file_path)} is an unknown type")
     return None
 
 
@@ -37,7 +42,7 @@ def extract_gzip(archive_name, archive_dir, extracted_dir):
         # Attempt to extract the tarball
         with tarfile.open(fileobj=f_in, mode='r:') as tar:
           tar.extractall(path=paper_dir)
-          print(f"Extracted contents of {archive_path} to {paper_dir}")
+          print(f"Extracted contents of {link(archive_path)} to {link(paper_dir)}")
         # Extraction complete, remove the archive
         os.remove(archive_path)
         return paper_name
@@ -50,14 +55,14 @@ def extract_gzip(archive_name, archive_dir, extracted_dir):
           file_path = os.path.join(paper_dir, "source.tex")
         with open(file_path, 'wb') as f_out:
           f_out.write(f_in.read())
-          print(f"Extracted contents of {archive_path} to {paper_dir}")
+          print(f"Extracted contents of {link(archive_path)} to {link(paper_dir)}")
         # Extraction complete, remove the archive
         os.remove(archive_path)
         return paper_name
   except Exception as e:
     # Something went wrong, remove the archive
     os.remove(archive_path)
-    print(f'Error extracting {archive_path}: {e}')
+    print(f'Error extracting {link(archive_path)}: {e}')
     return None
 
 

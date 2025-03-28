@@ -1,5 +1,11 @@
 import os
 
+from rich import print
+
+from src.aesthetics import (
+  link,
+)
+
 
 def find_tex_files(root_dir):
   '''Find all .tex files in the root directory.'''
@@ -17,16 +23,16 @@ def find_tex_files(root_dir):
 def merge_tex_files(tex_files, paper_path):
   '''Merge multiple .tex files into a single file.'''
 
-  # Create a temporary file to store the merged content
-  merged_path = os.path.join(paper_path, 'merged.tex')
-
   # Read the content of all .tex files
   tex_contents = {}
   for tex_file in tex_files:
     with open(os.path.join(paper_path, tex_file), 'r') as f:
       tex_contents[tex_file] = f.read()
 
+  print(len(tex_contents))
 
+  # Create a temporary file to store the merged content
+  merged_path = os.path.join(paper_path, 'merged.tex')
 
   print("nothing implemented yet")
   return merged_path

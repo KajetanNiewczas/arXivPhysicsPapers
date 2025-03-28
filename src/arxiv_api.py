@@ -1,9 +1,13 @@
 import os
 import shutil
 
+from rich import print
 import requests
 import feedparser
 
+from src.aesthetics import (
+  link,
+)
 from src.gzip_tools import (
   check_gzip,
   extract_gzip,
@@ -62,11 +66,11 @@ def download_paper(paper, archive_dir='papers/archives'):
           archive_path = os.path.join(archive_dir, archive_name)
           with open(archive_path, 'wb') as f:
             f.write(response.content)
-          print(f'Successfully downloaded {archive_path}')
+          print(f'Successfully downloaded {link(archive_path)}')
           return archive_name
 
   except requests.exceptions.RequestException as e:
-    print(f'Error downloading {source_url}: {e}')
+    print(f'Error downloading {link(source_url)}: {e}')
     return None
 
 
@@ -89,14 +93,14 @@ def copy_source_tex(paper_name, extracted_dir='papers/extracted',
   paper_path = os.path.join(extracted_dir, paper_name)
   tex_files  = find_tex_files(paper_path)
   if not tex_files:
-    print(f"Warning: there no tex files to process for {paper_name}")
+    print(f"Warning: there no tex files to process for {link(paper_name)}")
     return None
 
   # Check if the source file already exists
   source_name = paper_name + '.tex'
   source_path = os.path.join(sources_dir, source_name)
   if os.path.exists(source_path):
-    print(f'Warning: {source_name} already exists and will be overwritten')
+    print(f'Warning: {link(source_name)} already exists and will be overwritten')
 
   # If there is only one .tex file, copy it to the sources directory
   if len(tex_files) == 1:
@@ -110,6 +114,6 @@ def copy_source_tex(paper_name, extracted_dir='papers/extracted',
 
   # Remove the extracted folder
   # shutil.rmtree(paper_path)
-  print(f'Successfully copied {source_name} and removed {paper_path}')
+  print(f'Successfully copied {link(source_name)} and removed {link(paper_path)}')
 
   return source_name
