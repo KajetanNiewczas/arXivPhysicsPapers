@@ -1,9 +1,12 @@
 import os
 
+from rich import print
+
 from src.arxiv_api import (
   fetch_paper_metadata,
   download_paper,
-  get_source_tex,
+  extract_paper,
+  copy_source_tex,
 )
 
 
@@ -22,9 +25,22 @@ def main():
   try:
     new_papers = fetch_paper_metadata()
     for paper in new_papers:
-      print(paper)
+      print('[dim]-[/dim]' * 80)
+      print(f'[bold red]Processing paper: {paper['arxiv_id']} - {paper['title']}[/bold red]')
+
       archive_name = download_paper(paper, archive_dir)
-      get_source_tex(archive_name)
+      if not archive_name:
+        continue
+
+      paper_name = extract_paper(archive_name, archive_dir, extracted_dir)
+      if not paper_name:
+        continue
+
+      source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
+      if not source_name:
+        continue
+
+    print('[dim]-[/dim]' * 80)
     return 0
 
   except Exception as e:

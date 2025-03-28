@@ -1,17 +1,8 @@
 import os
 import gzip
 import tarfile
-import shutil
-# import stat
-# import subprocess
 
 import magic
-
-
-# def get_paper_id(file_path):
-#   '''Get the paper ID for internal processing.'''
-
-#   # We 
 
 
 def check_gzip(file_path):
@@ -84,32 +75,3 @@ def get_original_filename_from_gzip(gz_file_path):
         break
       filename.extend(byte)
   return filename.decode('utf-8') if filename else None
-
-
-# def clear_extracted_folder(extracted_path):
-#   '''Extract the source .tex file from the folder.'''
-
-#   # # Ensure no permission problems
-#   # os.chmod(extracted_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-#   # for root, dirs, files in os.walk(extracted_path, topdown=False):
-#   #   for d in dirs:
-#   #     os.chmod(os.path.join(root, d), stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-#   #   for f in files:
-#   #     os.chmod(os.path.join(root, f), stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-
-#   # Get the list of .tex files
-#   files_in_folder = os.listdir(extracted_path)
-#   tex_files = [f for f in files_in_folder if f.endswith('.tex')]
-
-#   # Delete everything else
-#   for f in files_in_folder:
-#     if f not in tex_files:
-#       if os.path.isdir(f):
-#         shutil.rmtree(os.path.join(extracted_path, f), onexc=force_remove_readonly)
-#       else:
-#         os.remove(os.path.join(extracted_path, f))
-
-#   # shutil.rmtree(extracted_path, onexc=force_remove_readonly)
-
-#   return True if tex_files else False
-

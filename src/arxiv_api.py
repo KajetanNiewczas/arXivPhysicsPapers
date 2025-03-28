@@ -1,9 +1,10 @@
 import os
+import shutil
 
 import requests
 import feedparser
 
-from src.tools import (
+from src.gzip_tools import (
   check_gzip,
   extract_gzip,
 )
@@ -15,8 +16,8 @@ def fetch_paper_metadata(query='all:electron', max_results=1):
   base_url   = 'http://export.arxiv.org/api/query?'
   start      = 0
   sort_by    = 'submittedDate'
-  # sort_order = 'ascending'
-  sort_order = 'descending'
+  sort_order = 'ascending'
+  # sort_order = 'descending'
   # seems like the best way will be to sort ascanding
   # and then each time start from next entries
   url = '{}search_query={}&start={}&max_results={}&sortBy={}&sortOrder={}'.format(
@@ -65,23 +66,43 @@ def download_paper(paper, archive_dir='papers/archives'):
     return None
 
 
-def get_source_tex(archive_name, archive_dir='papers/archives',
-                                 extracted_dir='papers/extracted'):
-  '''Check if the downloaded file is a gzip archive.
-     If so, extract the source .tex file from the archive.'''
+def extract_paper(archive_name, archive_dir='papers/archives',
+                                extracted_dir='papers/extracted'):
+  '''Extract the contents of the gzip archive.'''
 
-
+  # Check if we have a gzip archive and extract it
   if check_gzip(os.path.join(archive_dir, archive_name)):
     paper_name = extract_gzip(archive_name, archive_dir, extracted_dir)
-    print(paper_name)
-    # if extracted_path:
-      # merge tex files into one
+
+  return paper_name
 
 
+def copy_source_tex(paper_name, extracted_dir='papers/extracted',
+                                sources_dir='papers/sources'):
+  '''Copy the source .tex file to the sources directory.'''
 
-      # clear_extracted_folder(extracted_path)
-      # if source_tex:
-      #   print(f'Successfully extracted {source_tex}')
-      #   return source_tex
+  # Get the list of .tex files
+  files_in_folder = os.listdir(os.path.join(extracted_dir, paper_name))
+  tex_files = [f for f in files_in_folder if f.endswith('.tex')]
 
-  return None
+  # If there is only one .tex file
+  if len(tex_files) == 1:
+    # Check if the source file already exists
+    source_name = paper_name + '.tex'
+    source_path = os.path.join(sources_dir, source_name)
+    if os.path.exists(source_path):
+      print(f'Warning: {source_name} already exists and will be overwritten')
+    # Copy the file to the sources directory
+    tex_file_path = os.path.join(extracted_dir, paper_name, tex_files[0])
+    shutil.copy(tex_file_path, source_path)
+
+    # Remove the extracted folder
+    paper_path = os.path.join(extracted_dir, paper_name)
+    shutil.rmtree(paper_path)
+    print(f'Successfully copied {source_name} and removed {paper_path}')
+
+    return source_name
+
+  else:
+    print("Aaaaa there are more than one tex files")
+    return None
