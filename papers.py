@@ -1,6 +1,7 @@
 import os
 
 from rich import print
+import pypandoc
 
 from src.aesthetics import (
   sep_line,
@@ -51,6 +52,9 @@ def main():
       source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
       if not source_name:
         continue
+
+      # output = pypandoc.convert_text(source_name, 'plain', format='latex')
+      # print(output)
 
     print(sep_line())
     return 0
