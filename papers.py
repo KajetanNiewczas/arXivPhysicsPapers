@@ -23,6 +23,7 @@ def main():
 
   # Let's go!
   try:
+    # Fetch the metadata of new papers
     # new_papers = fetch_paper_metadata()
     new_papers = [{'arxiv_id': '1902.05618',
                    'title': 'Nuclear Transparency in Monte Carlo Neutrino Event Generators',
@@ -31,14 +32,17 @@ def main():
       print(f'[dim]-[/dim]' * 80)
       print(f'[bold red]Processing paper: {paper['arxiv_id']} - {paper['title']}[/bold red]')
 
-      archive_name = download_paper(paper, archive_dir)
-      if not archive_name:
-        continue
+      # # Download the paper source code archive
+      # archive_name = download_paper(paper, archive_dir)
+      # if not archive_name:
+      #   continue
 
-      paper_name = extract_paper(archive_name, archive_dir, extracted_dir)
-      if not paper_name:
-        continue
-
+      # # Unpack the archive containing the paper source code
+      # paper_name = extract_paper(archive_name, archive_dir, extracted_dir)
+      # if not paper_name:
+      #   continue
+      paper_name = 'test'
+      # Copy the source .tex file to the sources directory
       source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
       if not source_name:
         continue

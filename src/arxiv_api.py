@@ -9,6 +9,7 @@ from src.gzip_tools import (
   extract_gzip,
 )
 from src.tex_tools import (
+  find_tex_files,
   merge_tex_files,
 )
 
@@ -85,8 +86,8 @@ def copy_source_tex(paper_name, extracted_dir='papers/extracted',
   '''Copy the source .tex file to the sources directory.'''
 
   # Get the list of .tex files
-  files_in_folder = os.listdir(os.path.join(extracted_dir, paper_name))
-  tex_files = [f for f in files_in_folder if f.endswith('.tex')]
+  paper_path = os.path.join(extracted_dir, paper_name)
+  tex_files  = find_tex_files(paper_path)
   if not tex_files:
     print(f"Warning: there no tex files to process for {paper_name}")
     return None
@@ -99,17 +100,16 @@ def copy_source_tex(paper_name, extracted_dir='papers/extracted',
 
   # If there is only one .tex file, copy it to the sources directory
   if len(tex_files) == 1:
-    tex_file_path = os.path.join(extracted_dir, paper_name, tex_files[0])
+    tex_file_path = os.path.join(paper_path, tex_files[0])
     shutil.copy(tex_file_path, source_path)
 
   # If there are multiple .tex files, merge them and copy the result
   else:
-    merged_path = merge_tex_files(tex_files, extracted_dir)
+    merged_path = merge_tex_files(tex_files, paper_path)
     shutil.copy(merged_path, source_path)
 
   # Remove the extracted folder
-  paper_path = os.path.join(extracted_dir, paper_name)
-  shutil.rmtree(paper_path)
+  # shutil.rmtree(paper_path)
   print(f'Successfully copied {source_name} and removed {paper_path}')
 
   return source_name
