@@ -1,15 +1,15 @@
-import feedparser
-import requests
 import os
+
+import requests
+import feedparser
 
 from src.tools import (
   check_gzip,
   extract_gzip,
-  clear_extracted_folder,
 )
 
 
-def fetch_paper_metadata(query='all:electron', max_results=10):
+def fetch_paper_metadata(query='all:electron', max_results=1):
   '''Fetch metadata for papers from the arXiv API.'''
 
   base_url   = 'http://export.arxiv.org/api/query?'
@@ -41,44 +41,45 @@ def fetch_paper_metadata(query='all:electron', max_results=10):
   return papers
 
 
-def download_paper(paper):
+def download_paper(paper, archive_dir='papers/archives'):
   '''Download the source code of a paper from arXiv.'''
-
-  archive_dir = 'papers/archives'
-  os.makedirs(archive_dir, exist_ok=True)
 
   source_url  = paper['source_url']
 
   try:
     response = requests.get(source_url, timeout=5)
     if response.ok and len(response.content) > 0:
-      filename = None
+      archive_name = None
       if 'Content-Disposition' in response.headers:
         content_disp = response.headers['Content-Disposition']
         if 'filename=' in content_disp:
-          filename = content_disp.split('filename=')[-1].strip('"')
-          archive_path = os.path.join(archive_dir, filename)
+          archive_name = content_disp.split('filename=')[-1].strip('"')
+          archive_path = os.path.join(archive_dir, archive_name)
           with open(archive_path, 'wb') as f:
             f.write(response.content)
           print(f'Successfully downloaded {archive_path}')
-          return archive_path
+          return archive_name
 
   except requests.exceptions.RequestException as e:
     print(f'Error downloading {source_url}: {e}')
     return None
 
 
-def get_source_tex(archive_path):
+def get_source_tex(archive_name, archive_dir='papers/archives',
+                                 extracted_dir='papers/extracted'):
   '''Check if the downloaded file is a gzip archive.
      If so, extract the source .tex file from the archive.'''
-  
-  extracted_dir = 'papers/extracted'
-  os.makedirs(extracted_dir, exist_ok=True)
 
-  if check_gzip(archive_path):
-    extracted_path = extract_gzip(archive_path, extracted_dir)
-    if extracted_path:
-      clear_extracted_folder(extracted_path)
+
+  if check_gzip(os.path.join(archive_dir, archive_name)):
+    paper_name = extract_gzip(archive_name, archive_dir, extracted_dir)
+    print(paper_name)
+    # if extracted_path:
+      # merge tex files into one
+
+
+
+      # clear_extracted_folder(extracted_path)
       # if source_tex:
       #   print(f'Successfully extracted {source_tex}')
       #   return source_tex

@@ -1,8 +1,17 @@
-import magic
+import os
 import gzip
 import tarfile
-import os
 import shutil
+# import stat
+# import subprocess
+
+import magic
+
+
+# def get_paper_id(file_path):
+#   '''Get the paper ID for internal processing.'''
+
+#   # We 
 
 
 def check_gzip(file_path):
@@ -20,44 +29,44 @@ def check_gzip(file_path):
     return None
 
 
-def extract_gzip(gz_file_path, extracted_dir):
+def extract_gzip(archive_name, archive_dir, extracted_dir):
   '''Extract the contents of the gzip archive.'''
 
   # Get the base name of the gzip file
-  file_name = os.path.basename(gz_file_path)
-  file_name = file_name.replace('.gz', '').replace('.tar', '')
-  file_dir  = os.path.join(extracted_dir, file_name)
+  archive_path = os.path.join(archive_dir, archive_name)
+  paper_name   = archive_name.replace('.gz', '').replace('.tar', '')
+  paper_dir    = os.path.join(extracted_dir, paper_name)
 
   try:
     # Create the directory to extract the contents to
-    os.makedirs(file_dir, exist_ok=False)
+    os.makedirs(paper_dir, exist_ok=False)
 
-    with gzip.open(gz_file_path, 'rb') as f_in:
+    with gzip.open(archive_path, 'rb') as f_in:
       try:
         # Attempt to extract the tarball
         with tarfile.open(fileobj=f_in, mode='r:') as tar:
-          tar.extractall(path=file_dir)
-          print(f"Extracted contents of {gz_file_path} to {file_dir}")
+          tar.extractall(path=paper_dir)
+          print(f"Extracted contents of {archive_path} to {paper_dir}")
         # Extraction complete, remove the archive
-        os.remove(gz_file_path)
-        return file_dir
+        os.remove(archive_path)
+        return paper_name
       except tarfile.TarError:
         # If the file is not a tarball, extract the single file
-        original_name = get_original_filename_from_gzip(gz_file_path)
+        original_name = get_original_filename_from_gzip(archive_path)
         if original_name:
-          file_path = os.path.join(file_dir, original_name)
+          file_path = os.path.join(paper_dir, original_name)
         else:
-          file_path = os.path.join(file_dir, "source.tex")
+          file_path = os.path.join(paper_dir, "source.tex")
         with open(file_path, 'wb') as f_out:
           f_out.write(f_in.read())
-          print(f"Extracted contents of {gz_file_path} to {file_dir}")
+          print(f"Extracted contents of {archive_path} to {paper_dir}")
         # Extraction complete, remove the archive
-        os.remove(gz_file_path)
-        return file_dir
+        os.remove(archive_path)
+        return paper_name
   except Exception as e:
     # Something went wrong, remove the archive
-    os.remove(gz_file_path)
-    print(f'Error extracting {gz_file_path}: {e}')
+    os.remove(archive_path)
+    print(f'Error extracting {archive_path}: {e}')
     return None
 
 
@@ -77,19 +86,30 @@ def get_original_filename_from_gzip(gz_file_path):
   return filename.decode('utf-8') if filename else None
 
 
-def clear_extracted_folder(extracted_path):
-  '''Extract the source .tex file from the folder.'''
+# def clear_extracted_folder(extracted_path):
+#   '''Extract the source .tex file from the folder.'''
 
-  # Get the list of .tex files
-  files_in_folder = os.listdir(extracted_path)
-  tex_files = [f for f in files_in_folder if f.endswith('.tex')]
+#   # # Ensure no permission problems
+#   # os.chmod(extracted_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+#   # for root, dirs, files in os.walk(extracted_path, topdown=False):
+#   #   for d in dirs:
+#   #     os.chmod(os.path.join(root, d), stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+#   #   for f in files:
+#   #     os.chmod(os.path.join(root, f), stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
 
-  # Delete everything else
-  for f in files_in_folder:
-    if f not in tex_files:
-      if os.path.isdir(f):
-        shutil.rmdir(os.path.join(extracted_path, f))
-      else:
-        os.remove(os.path.join(extracted_path, f))
+#   # Get the list of .tex files
+#   files_in_folder = os.listdir(extracted_path)
+#   tex_files = [f for f in files_in_folder if f.endswith('.tex')]
 
-  return True if tex_files else False
+#   # Delete everything else
+#   for f in files_in_folder:
+#     if f not in tex_files:
+#       if os.path.isdir(f):
+#         shutil.rmtree(os.path.join(extracted_path, f), onexc=force_remove_readonly)
+#       else:
+#         os.remove(os.path.join(extracted_path, f))
+
+#   # shutil.rmtree(extracted_path, onexc=force_remove_readonly)
+
+#   return True if tex_files else False
+
