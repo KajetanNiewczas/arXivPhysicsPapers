@@ -8,6 +8,9 @@ from src.gzip_tools import (
   check_gzip,
   extract_gzip,
 )
+from src.tex_tools import (
+  merge_tex_files,
+)
 
 
 def fetch_paper_metadata(query='all:electron', max_results=1):
@@ -84,25 +87,29 @@ def copy_source_tex(paper_name, extracted_dir='papers/extracted',
   # Get the list of .tex files
   files_in_folder = os.listdir(os.path.join(extracted_dir, paper_name))
   tex_files = [f for f in files_in_folder if f.endswith('.tex')]
+  if not tex_files:
+    print(f"Warning: there no tex files to process for {paper_name}")
+    return None
 
-  # If there is only one .tex file
+  # Check if the source file already exists
+  source_name = paper_name + '.tex'
+  source_path = os.path.join(sources_dir, source_name)
+  if os.path.exists(source_path):
+    print(f'Warning: {source_name} already exists and will be overwritten')
+
+  # If there is only one .tex file, copy it to the sources directory
   if len(tex_files) == 1:
-    # Check if the source file already exists
-    source_name = paper_name + '.tex'
-    source_path = os.path.join(sources_dir, source_name)
-    if os.path.exists(source_path):
-      print(f'Warning: {source_name} already exists and will be overwritten')
-    # Copy the file to the sources directory
     tex_file_path = os.path.join(extracted_dir, paper_name, tex_files[0])
     shutil.copy(tex_file_path, source_path)
 
-    # Remove the extracted folder
-    paper_path = os.path.join(extracted_dir, paper_name)
-    shutil.rmtree(paper_path)
-    print(f'Successfully copied {source_name} and removed {paper_path}')
-
-    return source_name
-
+  # If there are multiple .tex files, merge them and copy the result
   else:
-    print("Aaaaa there are more than one tex files")
-    return None
+    merged_path = merge_tex_files(tex_files, extracted_dir)
+    shutil.copy(merged_path, source_path)
+
+  # Remove the extracted folder
+  paper_path = os.path.join(extracted_dir, paper_name)
+  shutil.rmtree(paper_path)
+  print(f'Successfully copied {source_name} and removed {paper_path}')
+
+  return source_name

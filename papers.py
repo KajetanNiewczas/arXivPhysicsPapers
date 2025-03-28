@@ -23,9 +23,12 @@ def main():
 
   # Let's go!
   try:
-    new_papers = fetch_paper_metadata()
+    # new_papers = fetch_paper_metadata()
+    new_papers = [{'arxiv_id': '1902.05618',
+                   'title': 'Nuclear Transparency in Monte Carlo Neutrino Event Generators',
+                   'source_url': 'https://arxiv.org/src/1902.05618'}]
     for paper in new_papers:
-      print('[dim]-[/dim]' * 80)
+      print(f'[dim]-[/dim]' * 80)
       print(f'[bold red]Processing paper: {paper['arxiv_id']} - {paper['title']}[/bold red]')
 
       archive_name = download_paper(paper, archive_dir)
@@ -40,7 +43,7 @@ def main():
       if not source_name:
         continue
 
-    print('[dim]-[/dim]' * 80)
+    print(f'[dim]-[/dim]' * 80)
     return 0
 
   except Exception as e:
