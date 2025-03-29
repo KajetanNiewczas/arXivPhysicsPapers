@@ -6,6 +6,9 @@ from rich import print
 from src.aesthetics import (
   link,
 )
+from src.graph_tools import (
+  find_main_key
+)
 
 
 def find_tex_files(root_dir):
@@ -29,8 +32,14 @@ def merge_tex_files(tex_files, paper_path):
   for tex_file in tex_files:
     with open(os.path.join(paper_path, tex_file), 'r', encoding='utf-8') as f:
       tex_contents[tex_file] = preprocess_tex_content(f.read())
+  
+  # Detect all the inclusions to build the connections graph
+  connections  = {}
+  for tex_file in tex_files:
+    connections[tex_file] = detect_inclusions(tex_contents[tex_file])
 
-  print(tex_contents['conclusions.tex'])
+  print(connections)
+  print(find_main_key(connections))
 
   # Create a temporary file to store the merged content
   merged_path = os.path.join(paper_path, 'merged.tex')
@@ -144,3 +153,26 @@ def remove_comments_tex(tex_content):
     tex_content = tex_content[:-1]
 
   return tex_content
+
+
+def detect_inclusions(tex_content):
+  '''Detect the include and input statements in the tex content.
+     Return a list of files to which they lead.'''
+
+  # Patterns to detect include and input statements
+  include_input_pattern = re.compile(
+    r'\\(include|input)\s*'             # Match \include or \input
+    r'(?:\[\s*([^\]]*?)\s*\])?\s*'      # Optional [options] (group 2)
+    r'\{\s*([^}]*)\s*\}',               # Mandatory {filename} (group 3)
+    re.MULTILINE | re.DOTALL
+  )
+
+  # Find all matches
+  matches = []
+  for match in include_input_pattern.finditer(tex_content):
+    filename = match.group(3).strip()
+    if not filename.endswith('.tex'):
+      filename += '.tex'
+    matches.append(filename)
+
+  return matches
