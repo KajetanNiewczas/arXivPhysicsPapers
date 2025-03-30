@@ -32,18 +32,20 @@ def merge_tex_files(tex_files, paper_path):
   for tex_file in tex_files:
     with open(os.path.join(paper_path, tex_file), 'r', encoding='utf-8') as f:
       tex_contents[tex_file] = preprocess_tex_content(f.read())
-  
+
   # Detect all the inclusions to build the connections graph
   connections  = {}
   for tex_file in tex_files:
     connections[tex_file] = detect_inclusions(tex_contents[tex_file])
 
-  print(connections)
-  print(find_main_key(connections))
+  # Find the main .tex file and resolve the inclusions
+  main_file    = find_main_key(connections)
+  main_content = fix_inclusions(tex_contents, main_file)
 
   # Create a temporary file to store the merged content
   merged_path = os.path.join(paper_path, 'merged.tex')
-  with open(merged_path, 'w'): pass
+  with open(merged_path, 'w', encoding='utf-8') as f:
+    f.write(main_content)
 
   return merged_path
 
@@ -73,6 +75,11 @@ def normalize_tex(tex_content):
     stripped_line = line.strip()
     cleaned_lines.append(stripped_line)
   tex_content = '\n'.join(cleaned_lines)
+
+   # Remove excessive empty lines (multiple \n or lines with only whitespace)
+  tex_content = re.sub(r'\n\s*\n+', '\n\n', tex_content)
+  if tex_content.endswith('\n\n'):
+    tex_content = tex_content[:-1]
 
   return tex_content
 
@@ -133,6 +140,14 @@ def remove_comments_tex(tex_content):
     # Check for comments
     comment_pos = comment_pattern.match(tex_content, i)
     if comment_pos:
+      # Remove any trailing whitespace before `%`
+      while result and result[-1].isspace():
+        result.pop()
+
+      # If the last remaining character is '\n', remove it
+      if result and result[-1] == '\n':
+        result.pop()
+
       # Skip until the end of the line
       while i < n and tex_content[i] != '\n':
         i += 1
@@ -142,15 +157,9 @@ def remove_comments_tex(tex_content):
     result.append(char)
     i += 1
 
-  # Join the result, but remove the first empty line
-  if result and result[0] == '\n':
-    result = result[1:]
+  # Join the result and remove and trailing empty lines in front
   tex_content = ''.join(result)
-
-  # Remove excessive empty lines (multiple \n or lines with only whitespace)
-  tex_content = re.sub(r'\n\s*\n+', '\n\n', tex_content)
-  if tex_content.endswith('\n\n'):
-    tex_content = tex_content[:-1]
+  tex_content = tex_content.lstrip("\n")
 
   return tex_content
 
@@ -176,3 +185,51 @@ def detect_inclusions(tex_content):
     matches.append(filename)
 
   return matches
+
+
+def fix_inclusions(tex_contents, main_file):
+  '''Detect the include and input statements in the main tex file.
+     Resolve the commands by pasting the appropriate file.'''
+
+  # Prepare the main content
+  main_content = tex_contents.pop(main_file)
+
+  # Patterns to detect include and input statements
+  include_input_pattern = re.compile(
+    r'\\(include|input)\s*'             # Match \include or \input
+    r'(?:\[\s*([^\]]*?)\s*\])?\s*'      # Optional [options] (group 2)
+    r'\{\s*([^}]*)\s*\}',               # Mandatory {filename} (group 3)
+    re.MULTILINE | re.DOTALL
+  )
+
+  # Replace matches
+  while True:
+    updated     = False
+    new_content = []
+    last_pos    = 0
+
+    for match in include_input_pattern.finditer(main_content):
+      # Get the file to include
+      filename = match.group(3).strip()
+      if not filename.endswith('.tex'):
+        filename += '.tex'
+
+      # Append content before the match
+      new_content.append(main_content[last_pos:match.start()])
+
+      # Insert the included file
+      new_content.append(tex_contents.pop(filename))
+
+      # Move forward
+      last_pos = match.end()
+      updated = True
+
+    # Append the remaining content
+    new_content.append(main_content[last_pos:])
+    main_content = ''.join(new_content)
+
+    # Stop if no more replacements were made
+    if not updated:
+      break
+
+  return main_content

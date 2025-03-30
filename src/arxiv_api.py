@@ -18,14 +18,14 @@ from src.tex_tools import (
 )
 
 
-def fetch_paper_metadata(query='all:electron', max_results=1):
+def fetch_paper_metadata(query='all:electron', max_results=10):
   '''Fetch metadata for papers from the arXiv API.'''
 
   base_url   = 'http://export.arxiv.org/api/query?'
   start      = 0
   sort_by    = 'submittedDate'
-  sort_order = 'ascending'
-  # sort_order = 'descending'
+  # sort_order = 'ascending'
+  sort_order = 'descending'
   # seems like the best way will be to sort ascanding
   # and then each time start from next entries
   url = '{}search_query={}&start={}&max_results={}&sortBy={}&sortOrder={}'.format(
@@ -102,18 +102,12 @@ def copy_source_tex(paper_name, extracted_dir='papers/extracted',
   if os.path.exists(source_path):
     print(f'Warning: {link(source_name)} already exists and will be overwritten')
 
-  # If there is only one .tex file, copy it to the sources directory
-  if len(tex_files) == 1:
-    tex_file_path = os.path.join(paper_path, tex_files[0])
-    shutil.copy(tex_file_path, source_path)
-
-  # If there are multiple .tex files, merge them and copy the result
-  else:
-    merged_path = merge_tex_files(tex_files, paper_path)
-    shutil.copy(merged_path, source_path)
+  # Preprocess .tex files, merge then if needed and copy the result
+  merged_path = merge_tex_files(tex_files, paper_path)
+  shutil.copy(merged_path, source_path)
 
   # Remove the extracted folder
-  # shutil.rmtree(paper_path)
+  shutil.rmtree(paper_path)
   print(f'Successfully copied {link(source_name)} and removed {link(paper_path)}')
 
   return source_name
