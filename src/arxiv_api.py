@@ -133,6 +133,9 @@ def extract_plain_text(source_name, sources_dir):
                    preprocess_pylatexenc(tex_content)
                  )
                )
+  
+  # Remove the source file
+  os.remove(source_path)
   print(f'Extracted plain text from {link(source_path)}')
 
   return plain_text

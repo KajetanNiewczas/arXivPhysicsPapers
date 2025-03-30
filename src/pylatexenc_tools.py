@@ -46,4 +46,7 @@ def remove_whitespace(plain_text):
   # Remove excessive empty lines
   plain_text = re.sub(r'\n\s*\n+', '\n\n', plain_text)
 
+  # Convert the non-breaking spaces with regular spaces
+  plain_text = plain_text.replace('\xa0', ' ')
+
   return plain_text

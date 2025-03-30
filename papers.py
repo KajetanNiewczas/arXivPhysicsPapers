@@ -30,9 +30,6 @@ def main():
   try:
     # Fetch the metadata of new papers
     new_papers = fetch_paper_metadata()
-    # new_papers = [{'arxiv_id': '1902.05618',
-    #                'title': 'Nuclear Transparency in Monte Carlo Neutrino Event Generators',
-    #                'source_url': 'https://arxiv.org/src/1902.05618'}]
     for paper in new_papers:
       try:
         print(sep_line())
@@ -55,12 +52,13 @@ def main():
 
         # Convert the .tex source file into plain text
         plain_text = extract_plain_text(source_name, sources_dir)
-        if not source_name:
+        if not plain_text:
           continue
 
-        # Print the output
-        with open('test2.txt', 'w', encoding='utf-8') as f:
-          f.write(plain_text)
+        # Add plain text to the paper's content
+        paper['content'] = plain_text
+        # with open('test.txt', 'w', encoding='utf-8') as f:
+        #   f.write(paper['content'])
 
       except Exception as e:
         print(f'Error processing paper {paper['arxiv_id']}: {e}')
