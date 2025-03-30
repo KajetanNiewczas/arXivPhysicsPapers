@@ -5,6 +5,7 @@ idna==3.10
 markdown-it-py==3.0.0
 mdurl==0.1.2
 Pygments==2.19.1
+pylatexenc==2.10
 python-magic==0.4.27
 requests==2.32.3
 rich==13.9.4

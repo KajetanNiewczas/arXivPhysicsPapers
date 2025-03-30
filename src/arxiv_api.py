@@ -4,6 +4,7 @@ import shutil
 from rich import print
 import requests
 import feedparser
+from pylatexenc.latex2text import LatexNodes2Text
 
 from src.aesthetics import (
   link,
@@ -15,6 +16,10 @@ from src.gzip_tools import (
 from src.tex_tools import (
   find_tex_files,
   merge_tex_files,
+)
+from src.pylatexenc_tools import (
+  preprocess_pylatexenc,
+  postprocess_pylatexenc,
 )
 
 
@@ -74,7 +79,7 @@ def download_paper(paper, archive_dir='papers/archives'):
     return None
 
 
-def extract_paper(archive_name, archive_dir='papers/archives',
+def extract_source(archive_name, archive_dir='papers/archives',
                                 extracted_dir='papers/extracted'):
   '''Extract the contents of the gzip archive.'''
 
@@ -111,3 +116,23 @@ def copy_source_tex(paper_name, extracted_dir='papers/extracted',
   print(f'Successfully copied {link(source_name)} and removed {link(paper_path)}')
 
   return source_name
+
+
+def extract_plain_text(source_name, sources_dir):
+  '''Extract plain text from a .tex source file.'''
+
+  # Load the .tex source file
+  tex_content = None
+  source_path = os.path.join(sources_dir, source_name)
+  with open(source_path, 'r') as f:
+    tex_content = f.read()
+
+  # Convert to plain text using pylatexenc
+  plain_text = postprocess_pylatexenc(
+                 LatexNodes2Text().latex_to_text(
+                   preprocess_pylatexenc(tex_content)
+                 )
+               )
+  print(f'Extracted plain text from {link(source_path)}')
+
+  return plain_text

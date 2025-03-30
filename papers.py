@@ -9,8 +9,9 @@ from src.aesthetics import (
 from src.arxiv_api import (
   fetch_paper_metadata,
   download_paper,
-  extract_paper,
+  extract_source,
   copy_source_tex,
+  extract_plain_text
 )
 
 
@@ -43,7 +44,7 @@ def main():
           continue
 
         # Unpack the archive containing the paper source code
-        paper_name = extract_paper(archive_name, archive_dir, extracted_dir)
+        paper_name = extract_source(archive_name, archive_dir, extracted_dir)
         if not paper_name:
           continue
 
@@ -51,6 +52,15 @@ def main():
         source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
         if not source_name:
           continue
+
+        # Convert the .tex source file into plain text
+        plain_text = extract_plain_text(source_name, sources_dir)
+        if not source_name:
+          continue
+
+        # Print the output
+        with open('test2.txt', 'w', encoding='utf-8') as f:
+          f.write(plain_text)
 
       except Exception as e:
         print(f'Error processing paper {paper['arxiv_id']}: {e}')

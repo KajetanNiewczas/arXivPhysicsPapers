@@ -76,7 +76,7 @@ def normalize_tex(tex_content):
     cleaned_lines.append(stripped_line)
   tex_content = '\n'.join(cleaned_lines)
 
-   # Remove excessive empty lines (multiple \n or lines with only whitespace)
+  # Remove excessive empty lines (multiple \n or lines with only whitespace)
   tex_content = re.sub(r'\n\s*\n+', '\n\n', tex_content)
   if tex_content.endswith('\n\n'):
     tex_content = tex_content[:-1]
