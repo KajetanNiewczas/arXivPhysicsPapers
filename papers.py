@@ -57,8 +57,8 @@ def main():
 
         # Add plain text to the paper's content
         paper['content'] = plain_text
-        # with open('test.txt', 'w', encoding='utf-8') as f:
-        #   f.write(paper['content'])
+        with open('test.txt', 'w', encoding='utf-8') as f:
+          f.write(paper['content'])
 
       except Exception as e:
         print(f'Error processing paper {paper['arxiv_id']}: {e}')

@@ -23,14 +23,14 @@ from src.pylatexenc_tools import (
 )
 
 
-def fetch_paper_metadata(query='all:electron', max_results=10):
+def fetch_paper_metadata(query='all:electron', max_results=1):
   '''Fetch metadata for papers from the arXiv API.'''
 
   base_url   = 'http://export.arxiv.org/api/query?'
   start      = 0
   sort_by    = 'submittedDate'
-  # sort_order = 'ascending'
   sort_order = 'descending'
+  # sort_order = 'descending'
   # seems like the best way will be to sort ascanding
   # and then each time start from next entries
   url = '{}search_query={}&start={}&max_results={}&sortBy={}&sortOrder={}'.format(
@@ -42,13 +42,16 @@ def fetch_paper_metadata(query='all:electron', max_results=10):
     arxiv_id = entry.id.replace('http://arxiv.org/abs/', '') \
                        .replace('https://arxiv.org/abs/', '')
     paper = {
-      'title':      entry.title,
-      'authors':    [author.name for author in entry.authors],
-      'published':  entry.published,
-      'summary':    entry.summary,
-      'arxiv_id':   arxiv_id,
-      'pdf_url':    f'https://arxiv.org/pdf/{arxiv_id}.pdf',
-      'source_url': f'https://arxiv.org/src/{arxiv_id}',
+      'title':          entry.title,
+      'authors':        [author.name for author in entry.authors],
+      'published':      entry.published,
+      'summary':        entry.summary,
+      'arxiv_id':       arxiv_id,
+      'pdf_url':        f'https://arxiv.org/pdf/{arxiv_id}.pdf',
+      'source_url':     f'https://arxiv.org/src/{arxiv_id}',
+      'primary_cat':    entry.arxiv_primary_category['term'],
+      'secondary_cats': [cat.term for cat in entry.tags
+                         if cat.term != entry.arxiv_primary_category['term']]
     }
     papers.append(paper)
 
