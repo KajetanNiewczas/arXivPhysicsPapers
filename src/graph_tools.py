@@ -1,17 +1,5 @@
-class GraphCycleError(Exception):
-    """Exception raised if the graph contains a cycle."""
-    pass
-
-class MultipleRootsError(Exception):
-    """Exception raised if the graph has multiple root nodes."""
-    pass
-
-class NoRootFoundError(Exception):
-    """Exception raised if no root can be found in the graph."""
-    pass
-
-class MissingNodeError(Exception):
-    """Exception raised when a referenced node is not found in the graph."""
+class GraphError(Exception):
+    """Exception raised if the graph tools fail."""
     pass
 
 
@@ -53,18 +41,18 @@ def find_main_key(graph):
   # Check for missing files
   missing_nodes = all_values - set(graph.keys())
   if missing_nodes:
-    raise MissingNodeError(f"Missing tex files to include: {', '.join(missing_nodes)}")
+    raise GraphError(f"Missing tex files to include: {', '.join(missing_nodes)}")
 
   # Ensure there are no cycles first
   if has_cycle(graph):
-    raise GraphCycleError("Tex inclusions graph contains a cycle, the structure is ambiguous.")
+    raise GraphError("Tex inclusions graph contains a cycle, the structure is ambiguous.")
 
   # Find the root (main key)
   root_nodes = [key for key in graph if key not in all_values]
   # Return only one, otherwise the structure is ambiguous
   if len(root_nodes) > 1:
-    raise MultipleRootsError(f"Multiple potential main tex files found: {', '.join(root_nodes)}")
+    raise GraphError(f"Multiple potential main tex files found: {', '.join(root_nodes)}")
   if root_nodes:
     return root_nodes[0]
 
-  raise NoRootFoundError("No main tex found, the structure is ambiguous.")
+  raise GraphError("No main tex found, the structure is ambiguous.")

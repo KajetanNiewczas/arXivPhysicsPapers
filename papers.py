@@ -5,9 +5,14 @@ from rich import print
 from src.aesthetics import (
   sep_line,
   header,
+  link,
+)
+from src.entries import (
+  new_entry,
 )
 from src.arxiv_api import (
   fetch_paper_metadata,
+  get_paper_oaipmh,
   download_paper,
   extract_source,
   copy_source_tex,
@@ -27,28 +32,35 @@ def main():
   os.makedirs(sources_dir,   exist_ok=True)
 
   # Let's go!
+  papers = []
   try:
-    # Fetch the metadata of new papers
-    new_papers = fetch_paper_metadata()
-    for paper in new_papers:
+    # Fetch the list of papers
+    papers = [new_entry(x) for x in fetch_paper_metadata()]
+    # papers = [new_entry('1902.05618')]
+    # papers = [new_entry('1702.06402')]
+    for paper in papers:
       try:
         print(sep_line())
-        print(header(f'Processing paper: {paper['arxiv_id']} - {paper['title']}'))
+        print(header(f'Processing paper: {paper['arxiv_id']}'))
+
+        # Get metadata of the paper
+        if not get_paper_oaipmh(paper):
+          raise RuntimeError(f'Failed to fetch metadata of {link(paper['arxiv_id'])}')
 
         # Download the paper source code archive
         archive_name = download_paper(paper, archive_dir)
         if not archive_name:
-          continue
+          raise RuntimeError(f'Download failed for {link(paper['arxiv_id'])}')
 
         # Unpack the archive containing the paper source code
         paper_name = extract_source(archive_name, archive_dir, extracted_dir)
         if not paper_name:
-          continue
+          raise RuntimeError(f'Unpacking failed for {link(paper['arxiv_id'])}')
 
         # Copy the source .tex file to the sources directory
         source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
         if not source_name:
-          continue
+          raise RuntimeError(f'Copying a source .tex file failed for {link(paper['arxiv_id'])}')
 
         # Convert the .tex source file into plain text
         plain_text = extract_plain_text(source_name, sources_dir)

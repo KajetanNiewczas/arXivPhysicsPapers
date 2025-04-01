@@ -1,4 +1,16 @@
 import re
+import html
+
+from pylatexenc.latex2text import LatexNodes2Text
+
+
+def clean_pylatexenc(text):
+  '''Extract plain text using pylatexenc.'''
+
+  # Extract plain text and ensure no html character issues
+  plain_text = html.unescape(LatexNodes2Text().latex_to_text(text))
+
+  return plain_text
 
 
 def preprocess_pylatexenc(tex_content):

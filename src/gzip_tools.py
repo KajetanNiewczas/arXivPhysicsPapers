@@ -1,6 +1,7 @@
 import os
 import gzip
 import tarfile
+import shutil
 
 from rich import print
 import magic
@@ -60,8 +61,8 @@ def extract_gzip(archive_name, archive_dir, extracted_dir):
         os.remove(archive_path)
         return paper_name
   except Exception as e:
-    # Something went wrong, remove the archive
-    os.remove(archive_path)
+    # Something went wrong, remove the empty folder
+    shutil.rmtree(paper_dir)
     print(f'Error extracting {link(archive_path)}: {e}')
     return None
 
@@ -79,4 +80,5 @@ def get_original_filename_from_gzip(gz_file_path):
       if byte == b'\0':  # Null byte indicates end of filename
         break
       filename.extend(byte)
+
   return filename.decode('utf-8') if filename else None
