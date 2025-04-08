@@ -35,7 +35,7 @@ def main():
   papers = []
   try:
     # Fetch the list of papers
-    papers = [new_entry(x) for x in fetch_paper_metadata()]
+    # papers = [new_entry(x) for x in fetch_paper_metadata()]
     # papers = [new_entry('1902.05618')]
     # papers = [new_entry('1702.06402')]
     for paper in papers:
@@ -71,6 +71,10 @@ def main():
         paper['content'] = plain_text
         with open('test.txt', 'w', encoding='utf-8') as f:
           f.write(paper['content'])
+
+        # Think about licenses, it seems that
+        # ['CC BY 4.0', 'CC BY-SA 4.0', 'CC BY-NC-SA 4.0', 'CC BY-NC-ND 4.0', 'CC Zero']
+        # allow for redistribution of the contents, i.e. putting it in a public database
 
       except Exception as e:
         print(f'Error processing paper {paper['arxiv_id']}: {e}')
