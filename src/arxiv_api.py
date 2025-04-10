@@ -2,6 +2,8 @@ import os
 import shutil
 import html
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
+import time
 
 from rich import print
 import requests
@@ -9,6 +11,9 @@ import feedparser
 
 from src.aesthetics import (
   link,
+)
+from src.entries import (
+  new_entry,
 )
 from src.gzip_tools import (
   check_gzip,
@@ -126,6 +131,109 @@ def get_paper_oaipmh(paper):
     if metadata.find('arxiv:license', NAMESPACE) is not None else None
 
   return True
+
+
+def get_full_month_oaipmh(year, month):
+  '''Get metadata for papers in a given month using the arXiv OAI-PMH.'''
+
+  # Start with a few days in advance
+  if month == 1:
+    from_date = datetime(year - 1, 12, 25)
+  else:
+    from_date = datetime(year, month-1, 25)
+  # End after a month
+  if month == 12:
+    until_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+  else:
+    until_date = datetime(year, month + 1, 1) - timedelta(days=1)
+
+  # Access the API
+  NAMESPACE = {'oai': 'http://www.openarchives.org/OAI/2.0/'}
+  base_url = 'http://export.arxiv.org/oai2?'
+  params = {
+    'verb': 'ListRecords',
+    'metadataPrefix': 'arXiv',
+    'from': from_date.strftime('%Y-%m-%d'),
+    'until': until_date.strftime('%Y-%m-%d')
+  }
+
+  records = []
+  while True:
+    response = requests.get(base_url, params=params)
+    root = ET.fromstring(response.text)
+
+    # Save all the records
+    for record in root.findall('.//oai:record', NAMESPACE):
+      records.append(record)
+
+    # Check if we have reached the end of the records
+    token_elem = root.find('.//oai:resumptionToken', NAMESPACE)
+    if token_elem is not None and token_elem.text:
+      params = {
+        'verb': 'ListRecords',
+        'resumptionToken': token_elem.text
+      }
+      # break
+    else:
+      print(f'Successfully fetched {link(len(records))} metadata records from '
+            f'{link(from_date.strftime("%Y-%m-%d"))} till {link(until_date.strftime("%Y-%m-%d"))}')
+      break
+
+    # Respect the arXiv guidelines and sleep for 3 seconds before the next request
+    time.sleep(3)
+
+  return records
+
+
+def match_paper_metadata(papers, records):
+  '''Match the paper entries with their metadata.'''
+
+  NAMESPACE = {'arxiv': 'http://arxiv.org/OAI/arXiv/'}
+
+  entries = []
+
+  # Itreate over records and match them with papers
+  for record in records:
+    metadata = record.find('.//arxiv:arXiv', NAMESPACE)
+    if metadata.find('arxiv:title', NAMESPACE) is not None:
+      arxiv_id = metadata.find('arxiv:id', NAMESPACE).text.replace('/', '')
+      # Metadata matches an existing paper
+      if arxiv_id in papers:
+        entry = new_entry(arxiv_id)
+        # Extract the title
+        entry['title'] = " ".join(clean_pylatexenc(metadata.find('arxiv:title', NAMESPACE).text).split())
+        # Extract the authors
+        entry['authors'] = [
+          " ".join(filter(None, [
+            html.unescape(author.find('arxiv:forenames', NAMESPACE).text) if author.find('arxiv:forenames', NAMESPACE) is not None else None,
+            html.unescape(author.find('arxiv:keyname', NAMESPACE).text)
+        ]))
+        for author in metadata.findall('arxiv:authors/arxiv:author', NAMESPACE)
+        ]
+        # Extract the abstract
+        entry['abstract'] = " ".join(clean_pylatexenc(metadata.find('arxiv:abstract', NAMESPACE).text).split())
+        # Extract the categories
+        entry['categories'] = [x for x in metadata.find('arxiv:categories', NAMESPACE).text.split()]
+        # Extract other fields
+        entry['published'] = metadata.find('arxiv:journal-ref', NAMESPACE).text \
+          if metadata.find('arxiv:journal-ref', NAMESPACE) is not None else None
+        entry['comments'] = metadata.find('arxiv:comments', NAMESPACE).text \
+          if metadata.find('arxiv:comments', NAMESPACE) is not None else None
+        entry['license'] = metadata.find('arxiv:license', NAMESPACE).text \
+          if metadata.find('arxiv:license', NAMESPACE) is not None else None
+        if entry['title'] and entry['authors'] and entry['abstract'] and entry['categories']:
+          entries.append(entry)
+        # Remove the paper from the list
+        papers.remove(arxiv_id)
+      else:
+        continue
+
+  print(f'Successfully matched {link(len(entries))} papers with metadata')
+  # Check if there are any papers left without metadata
+  if papers:
+    print(f'Yet, {link(len(papers))} papers are still without metadata')
+
+  return entries
 
 
 def download_paper(paper, archive_dir='papers/archives'):

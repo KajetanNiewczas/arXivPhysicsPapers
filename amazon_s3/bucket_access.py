@@ -59,4 +59,4 @@ def download_source_tarball(source_file):
   except botocore.exceptions.ClientError as e:
     print(f"Failed to download the tarball: {e}")
 
-# download_source_tarball('arXiv_src_1001_001.tar')
+download_source_tarball('arXiv_src_0001_001.tar')

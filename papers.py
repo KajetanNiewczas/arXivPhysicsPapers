@@ -1,4 +1,5 @@
 import os
+import time
 
 from rich import print
 
@@ -13,12 +14,15 @@ from src.entries import (
 from src.arxiv_api import (
   fetch_paper_metadata,
   get_paper_oaipmh,
+  get_full_month_oaipmh,
+  match_paper_metadata,
   download_paper,
   extract_source,
   copy_source_tex,
   extract_plain_text
 )
 from src.bucket_tools import (
+  get_bucket_year_month,
   extract_bucket_archive,
 )
 
@@ -40,14 +44,43 @@ def main():
   os.makedirs(sources_dir,   exist_ok=True)
 
   # Let's go!
-  papers = []
+  bucket_name = 'arXiv_src_1001_001.tar'
+  year, month = get_bucket_year_month(bucket_name)
   try:
     # Unpack the archive with papers
-    papers = [new_entry(x) for x in extract_bucket_archive('arXiv_src_1001_001.tar',
-                                                           bucket_dir='amazon_s3/files',
-                                                           archive_dir=archive_dir)]
+    papers = extract_bucket_archive(bucket_name, bucket_dir='amazon_s3/files',
+                                                 archive_dir=archive_dir)
     if not papers:
-      raise RuntimeError('No papers found in the archive')
+      raise RuntimeError('No papers found in the bucket')
+
+    # Fetch the set of metadata for the given month
+    records = get_full_month_oaipmh(year, month)
+    if not records:
+      raise RuntimeError('No metadata found for the bucket')
+
+    # Match the metadata with the papers
+    entries = match_paper_metadata(papers, records)
+    if not entries:
+      raise RuntimeError('No papers matched with the metadata')
+
+    # Fetch all the missing metadata
+    for paper in papers:
+      try:
+        # Respect the arXiv guidelines and sleep for 3 seconds before the next request
+        time.sleep(3)
+        # Try to get the missing metadata one by one
+        entry = new_entry(paper)
+        if get_paper_oaipmh(entry):
+          papers.remove(paper)
+      except Exception as e:
+        print(f'Failed to fetch metadata of {paper}: {e}')
+
+    if papers:
+      print(f'Warning: Failed to fetch metadata of {link(len(papers))} papers')
+
+    print(entries)
+    print(papers)
+
 
     # Fetch the list of papers
     # papers = [new_entry(x) for x in fetch_paper_metadata()]
@@ -91,8 +124,10 @@ def main():
         # ['CC BY 4.0', 'CC BY-SA 4.0', 'CC BY-NC-SA 4.0', 'CC BY-NC-ND 4.0', 'CC Zero']
         # allow for redistribution of the contents, i.e. putting it in a public database
 
+        # print(paper)
+
       # except Exception as e:
-        # print(f'Error processing paper {paper['arxiv_id']}: {e}')
+      #   print(f'Error processing paper {paper['arxiv_id']}: {e}')
 
     print(sep_line())
     return 0
