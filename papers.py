@@ -43,7 +43,7 @@ def main():
   archive_dir   = 'papers/archives'
   extracted_dir = 'papers/extracted'
   sources_dir   = 'papers/sources'
-  os.makedirs(database_dir, exist_ok=True)
+  os.makedirs(database_dir,  exist_ok=True)
   os.makedirs(archive_dir,   exist_ok=True)
   os.makedirs(extracted_dir, exist_ok=True)
   os.makedirs(sources_dir,   exist_ok=True)
