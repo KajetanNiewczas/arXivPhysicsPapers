@@ -4,7 +4,6 @@ import html
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import time
-import re
 
 from rich import print
 import requests
@@ -87,13 +86,6 @@ def fetch_paper_oaipmh(paper):
   # arXiv id of the paper
   arxiv_id  = paper['arxiv_id']
 
-  # modify the old arXiv ids to match the OAI-PMH format
-  match = re.match(r'^([a-zA-Z\-]+)(\d+)$', arxiv_id)
-  if match:
-    oaipmh_id = f"{match.group(1)}/{match.group(2)}"
-  else:
-    oaipmh_id = arxiv_id
-
   # Access the API
   headers = {
     'User-Agent': 'arXivPhysicsPapers/0.1 (mailto:kajetan.niewczas@gmail.com)'
@@ -102,7 +94,7 @@ def fetch_paper_oaipmh(paper):
   verb     = 'GetRecord'
   prefix   = 'arXiv'
   url = '{}verb={}&metadataPrefix={}&identifier=oai:arXiv.org:{}'.format(
-    base_url, verb, prefix, oaipmh_id)
+    base_url, verb, prefix, arxiv_id)
   response = requests.get(url, headers=headers, timeout=10)
 
   # Check if the query was resolved correctly

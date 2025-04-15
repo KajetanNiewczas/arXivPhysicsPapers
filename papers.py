@@ -53,17 +53,18 @@ def main():
                                                  archive_dir=archive_dir)
     if not papers:
       raise RuntimeError('No papers found in the bucket')
-    
+
     # Get the year and month from the bucket name
     year, month = get_bucket_year_month(bucket_name)
     if not year or not month:
       raise RuntimeError('Failed to extract year and month from the bucket name')
 
-    # Fetch the set of metadata for the given month
-    records = fetch_full_month_oaipmh(year, month)
-
-    # Match the metadata with the papers
-    entries += match_paper_metadata(papers, records)
+    # If the year and month is later than the start of OAI-PMH
+    if year > 2007 or (year == 2007 and month > 4):
+      # Fetch the set of metadata for the given month
+      records = fetch_full_month_oaipmh(year, month)
+      # Match the metadata with the papers
+      entries += match_paper_metadata(papers, records)
 
     # Manually deal with the rest of the papers one by one
     while papers:
@@ -86,7 +87,7 @@ def main():
         print(header(f'Processing paper: {entry['arxiv_id']}'))
 
         # Download the paper source code archive
-        archive_name = entry['arxiv_id'] + '.gz'
+        archive_name = entry['safe_id'] + '.gz'
         if not archive_name:
           raise RuntimeError(f'Download failed for {link(entry['arxiv_id'])}')
 
@@ -109,6 +110,9 @@ def main():
         entry['content'] = plain_text
         with open('test.txt', 'w', encoding='utf-8') as f:
           f.write(entry['content'])
+
+        # Clean the unnecessary fields from the entry
+        del entry['safe_id']
 
         # Think about licenses, it seems that
         # ['CC BY 4.0', 'CC BY-SA 4.0', 'CC BY-NC-SA 4.0', 'CC BY-NC-ND 4.0', 'CC Zero']

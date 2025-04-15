@@ -52,7 +52,13 @@ def extract_bucket_archive(bucket_name, bucket_dir='amazon_s3/files',
           with open(target_path, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
 
-        papers.append(original_name.replace('.gz', ''))
+        # Obtain the true arXiv id
+        arxiv_id = original_name.replace('.gz', '')
+        match  = re.match(r'^([a-zA-Z\-]+)(\d+)$', arxiv_id)
+        if match:
+          arxiv_id = f"{match.group(1)}/{match.group(2)}"
+
+        papers.append(arxiv_id)
 
     print(f'Successfully extracted {link(len(papers))} papers from {link(bucket_name)}')
 
