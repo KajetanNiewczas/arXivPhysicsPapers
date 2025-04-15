@@ -3,10 +3,10 @@
 papers/archives/*
 papers/extracted/*
 papers/sources/*
-test*
 amazon_s3/files/*
 .env
 database/*
+logs/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

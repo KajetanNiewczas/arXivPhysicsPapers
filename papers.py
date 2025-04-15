@@ -2,6 +2,7 @@ import os
 import time
 import json
 import re
+import argparse
 
 from rich import print
 
@@ -32,6 +33,11 @@ from src.bucket_tools import (
 def main():
   '''Main entry point for the script.'''
 
+  # Set up argument parser
+  parser = argparse.ArgumentParser(description="Process arXiv bucket tarball and build database.")
+  parser.add_argument("tarball", help="Name of the .tar file to process")
+  args = parser.parse_args()
+
   # Make sure we have all the necessary directories
   database_dir  = 'database'
   archive_dir   = 'papers/archives'
@@ -43,7 +49,7 @@ def main():
   os.makedirs(sources_dir,   exist_ok=True)
 
   # Set the bucket name and database file name
-  bucket_name   = 'arXiv_src_0001_001.tar'
+  bucket_name   = args.tarball
   database_name = re.sub(r'^arXiv_src_(.*)\.tar$', r'\1.jsonl', bucket_name)
   database_file = os.path.join(database_dir, database_name)
   # Guard against overwriting
