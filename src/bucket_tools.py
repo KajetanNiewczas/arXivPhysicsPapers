@@ -41,7 +41,7 @@ def extract_bucket_archive(bucket_name, bucket_dir='amazon_s3/files',
 
   # Extract the contents
   with tarfile.open(bucket_path, 'r') as tar:
-    for member in tar.getmembers()[:10]:
+    for member in tar.getmembers()[:2]:
       if member.isfile() and member.name.endswith('.gz'):
         # Extract only the gzip files, do not process pdfs
         original_name = os.path.basename(member.name)

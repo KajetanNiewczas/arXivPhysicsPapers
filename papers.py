@@ -1,5 +1,6 @@
 import os
 import time
+import json
 
 from rich import print
 
@@ -13,8 +14,8 @@ from src.entries import (
 )
 from src.arxiv_api import (
   fetch_paper_metadata,
-  get_paper_oaipmh,
-  get_full_month_oaipmh,
+  fetch_paper_oaipmh,
+  fetch_full_month_oaipmh,
   match_paper_metadata,
   download_paper,
   extract_source,
@@ -44,92 +45,87 @@ def main():
   os.makedirs(sources_dir,   exist_ok=True)
 
   # Let's go!
-  bucket_name = 'arXiv_src_1001_001.tar'
-  year, month = get_bucket_year_month(bucket_name)
+  entries = []
+  bucket_name = 'arXiv_src_0001_001.tar'
   try:
     # Unpack the archive with papers
     papers = extract_bucket_archive(bucket_name, bucket_dir='amazon_s3/files',
                                                  archive_dir=archive_dir)
     if not papers:
       raise RuntimeError('No papers found in the bucket')
+    
+    # Get the year and month from the bucket name
+    year, month = get_bucket_year_month(bucket_name)
+    if not year or not month:
+      raise RuntimeError('Failed to extract year and month from the bucket name')
 
     # Fetch the set of metadata for the given month
-    records = get_full_month_oaipmh(year, month)
-    if not records:
-      raise RuntimeError('No metadata found for the bucket')
+    records = fetch_full_month_oaipmh(year, month)
 
     # Match the metadata with the papers
-    entries = match_paper_metadata(papers, records)
-    if not entries:
-      raise RuntimeError('No papers matched with the metadata')
+    entries += match_paper_metadata(papers, records)
 
-    # Fetch all the missing metadata
-    for paper in papers:
+    # Manually deal with the rest of the papers one by one
+    while papers:
+      # Get the next paper
+      entry = new_entry(papers.pop(0))
+
       try:
         # Respect the arXiv guidelines and sleep for 3 seconds before the next request
         time.sleep(3)
-        # Try to get the missing metadata one by one
-        entry = new_entry(paper)
-        if get_paper_oaipmh(entry):
-          papers.remove(paper)
+        # Fetch the metadata using OAI-PMH
+        if fetch_paper_oaipmh(entry):
+          entries.append(entry)
       except Exception as e:
-        print(f'Failed to fetch metadata of {paper}: {e}')
+        print(f'Failed to fetch metadata for {link(entry['arxiv_id'])}: {e}')
 
-    if papers:
-      print(f'Warning: Failed to fetch metadata of {link(len(papers))} papers')
+    # Process the entries
+    for entry in entries:
+      try:
+        print(sep_line())
+        print(header(f'Processing paper: {entry['arxiv_id']}'))
 
-    print(entries)
-    print(papers)
+        # Download the paper source code archive
+        archive_name = entry['arxiv_id'] + '.gz'
+        if not archive_name:
+          raise RuntimeError(f'Download failed for {link(entry['arxiv_id'])}')
 
+        # Unpack the archive containing the paper source code
+        paper_name = extract_source(archive_name, archive_dir, extracted_dir)
+        if not paper_name:
+          raise RuntimeError(f'Unpacking failed for {link(entry['arxiv_id'])}')
 
-    # Fetch the list of papers
-    # papers = [new_entry(x) for x in fetch_paper_metadata()]
-    # papers = [new_entry('1902.05618')]
-    # papers = [new_entry('1702.06402')]
-    # for paper in papers:
-    #   try:
-    #     print(sep_line())
-    #     print(header(f'Processing paper: {paper['arxiv_id']}'))
+        # Copy the source .tex file to the sources directory
+        source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
+        if not source_name:
+          raise RuntimeError(f'Copying a source .tex file failed for {link(entry['arxiv_id'])}')
 
-    #     # Get metadata of the paper
-    #     if not get_paper_oaipmh(paper):
-    #       raise RuntimeError(f'Failed to fetch metadata of {link(paper['arxiv_id'])}')
+        # Convert the .tex source file into plain text
+        plain_text = extract_plain_text(source_name, sources_dir)
+        if not plain_text:
+          continue
 
-    #     # Download the paper source code archive
-    #     archive_name = download_paper(paper, archive_dir)
-    #     if not archive_name:
-    #       raise RuntimeError(f'Download failed for {link(paper['arxiv_id'])}')
-
-    #     # Unpack the archive containing the paper source code
-    #     paper_name = extract_source(archive_name, archive_dir, extracted_dir)
-    #     if not paper_name:
-    #       raise RuntimeError(f'Unpacking failed for {link(paper['arxiv_id'])}')
-
-    #     # Copy the source .tex file to the sources directory
-    #     source_name = copy_source_tex(paper_name, extracted_dir, sources_dir)
-    #     if not source_name:
-    #       raise RuntimeError(f'Copying a source .tex file failed for {link(paper['arxiv_id'])}')
-
-    #     # Convert the .tex source file into plain text
-    #     plain_text = extract_plain_text(source_name, sources_dir)
-    #     if not plain_text:
-    #       continue
-
-    #     # Add plain text to the paper's content
-    #     paper['content'] = plain_text
-    #     with open('test.txt', 'w', encoding='utf-8') as f:
-    #       f.write(paper['content'])
+        # Add plain text to the paper's content
+        entry['content'] = plain_text
+        with open('test.txt', 'w', encoding='utf-8') as f:
+          f.write(entry['content'])
 
         # Think about licenses, it seems that
         # ['CC BY 4.0', 'CC BY-SA 4.0', 'CC BY-NC-SA 4.0', 'CC BY-NC-ND 4.0', 'CC Zero']
         # allow for redistribution of the contents, i.e. putting it in a public database
 
-        # print(paper)
-
-      # except Exception as e:
-      #   print(f'Error processing paper {paper['arxiv_id']}: {e}')
+      except Exception as e:
+        print(f'Error processing paper {entry['arxiv_id']}: {e}')
 
     print(sep_line())
+
+    # Save the entries to the database
+    print(header('Saving entries to the database...'))
+    with open(database_file, "w") as f:
+      for entry in entries:
+        f.write(json.dumps(entry) + "\n")
+    print(f'Saved {len(entries)} entries to {link(database_file)}')
+
     return 0
 
   except Exception as e:

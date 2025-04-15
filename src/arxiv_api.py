@@ -4,6 +4,7 @@ import html
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import time
+import re
 
 from rich import print
 import requests
@@ -30,73 +31,100 @@ from src.pylatexenc_tools import (
 )
 
 
-# Warning: this will most likely be depricated
-def fetch_paper_metadata(query='all:electron', max_results=1):
+def fetch_paper_metadata(paper):
   '''Fetch metadata for papers from the arXiv API.'''
-
-  base_url   = 'http://export.arxiv.org/api/query?'
-  start      = 0
-  sort_by    = 'submittedDate'
-  sort_order = 'descending'
-  # sort_order = 'descending'
-  # seems like the best way will be to sort ascanding
-  # and then each time start from next entries
-  url = '{}search_query={}&start={}&max_results={}&sortBy={}&sortOrder={}'.format(
-    base_url, query, start, max_results, sort_by, sort_order)
-  feed = feedparser.parse(url)
-
-  papers = []
-  for entry in feed.entries:
-    arxiv_id = entry.id.replace('http://arxiv.org/abs/', '') \
-                       .replace('https://arxiv.org/abs/', '')
-    papers.append(arxiv_id)
-  #   paper = {
-  #     'title':          entry.title,
-  #     'authors':        [author.name for author in entry.authors],
-  #     'published':      entry.published,
-  #     'summary':        entry.summary,
-  #     'arxiv_id':       arxiv_id,
-  #     'pdf_url':        f'https://arxiv.org/pdf/{arxiv_id}.pdf',
-  #     'source_url':     f'https://arxiv.org/src/{arxiv_id}',
-  #     'primary_cat':    entry.arxiv_primary_category['term'],
-  #     'secondary_cats': [cat.term for cat in entry.tags
-  #                        if cat.term != entry.arxiv_primary_category['term']]
-  #   }
-  #   papers.append(paper)
-
-  return papers
-
-
-def get_paper_oaipmh(paper):
-  '''Get metadata for papers using the arXiv OAI-PMH.'''
 
   # arXiv id of the paper
   arxiv_id = paper['arxiv_id']
 
   # Access the API
+  base_url = 'http://export.arxiv.org/api/query?'
+  query    = f'id_list={arxiv_id}'
+  url      = f'{base_url}{query}'
+
+  feed = feedparser.parse(url)
+
+  # Check if the metadata was fetched correctly
+  if not feed.entries:
+    raise ValueError(f'No metadata in the response')
+  else:
+    metadata = feed.entries[0]
+
+  # Extract title
+  if metadata.title is not None:
+    paper['title'] = " ".join(clean_pylatexenc(metadata.title).split())
+  else:
+    raise ValueError(f'Missing title')
+
+  # Extract authors
+  if metadata.authors is not None:
+    paper['authors'] = [html.unescape(author.name) for author in metadata.authors]
+  else:
+    raise ValueError(f'Missing authors')
+
+  # Extract abstract
+  if metadata.summary is not None:
+    paper['abstract'] = " ".join(clean_pylatexenc(metadata.summary).split())
+  else:
+    raise ValueError(f'Missing abstract')
+  
+  # Extract categories
+  if metadata.tags is not None:
+    paper['categories'] = [cat.term for cat in metadata.tags]
+  else:
+    raise ValueError(f'Missing categories')
+
+  # Extract non-obligatory fields
+  paper['published'] = getattr(metadata, 'published', None)
+  paper['comments']  = getattr(metadata, 'arxiv_comments', None)
+
+  return True
+
+
+def fetch_paper_oaipmh(paper):
+  '''Fetch metadata for papers using the arXiv OAI-PMH.'''
+
+  # arXiv id of the paper
+  arxiv_id  = paper['arxiv_id']
+
+  # modify the old arXiv ids to match the OAI-PMH format
+  match = re.match(r'^([a-zA-Z\-]+)(\d+)$', arxiv_id)
+  if match:
+    oaipmh_id = f"{match.group(1)}/{match.group(2)}"
+  else:
+    oaipmh_id = arxiv_id
+
+  # Access the API
+  headers = {
+    'User-Agent': 'arXivPhysicsPapers/0.1 (mailto:kajetan.niewczas@gmail.com)'
+  }
   base_url = 'http://export.arxiv.org/oai2?'
   verb     = 'GetRecord'
   prefix   = 'arXiv'
   url = '{}verb={}&metadataPrefix={}&identifier=oai:arXiv.org:{}'.format(
-    base_url, verb, prefix, arxiv_id)
-  response = requests.get(url)
+    base_url, verb, prefix, oaipmh_id)
+  response = requests.get(url, headers=headers, timeout=10)
 
   # Check if the query was resolved correctly
   if response.status_code != 200:
-    raise RuntimeError(f'Failed to fetch metadata of {link(arxiv_id)} - HTTP {response.status_code}')
+    raise RuntimeError(f'HTTP response: {response.status_code}')
 
   # Parse the response
-  NAMESPACE = {'arxiv': 'http://arxiv.org/OAI/arXiv/'}
+  NAMESPACE = {'oai': 'http://www.openarchives.org/OAI/2.0/',
+               'arxiv': 'http://arxiv.org/OAI/arXiv/'}
   root = ET.fromstring(response.text)
+
+  # Get the metadata
   metadata = root.find('.//arxiv:arXiv', NAMESPACE)
+  # print(metadata)
   if metadata is None:
-    raise ValueError(f'No metadata found for {link(arxiv_id)}')
+    raise ValueError(f'No metadata in the response')
 
   # Extract title
   if metadata.find('arxiv:title', NAMESPACE) is not None:
     paper['title'] = " ".join(clean_pylatexenc(metadata.find('arxiv:title', NAMESPACE).text).split())
   else:
-    raise ValueError(f'Missing title for {link(arxiv_id)}')
+    raise ValueError(f'Missing title')
 
   # Extract authors
   if metadata.find('arxiv:authors', NAMESPACE) is not None:
@@ -108,19 +136,19 @@ def get_paper_oaipmh(paper):
     for author in metadata.findall('arxiv:authors/arxiv:author', NAMESPACE)
     ]
   else:
-    raise ValueError(f'Missing authors for {link(arxiv_id)}')
+    raise ValueError(f'Missing authors')
 
   # Extract abstract
   if metadata.find('arxiv:abstract', NAMESPACE) is not None:
     paper['abstract'] = " ".join(clean_pylatexenc(metadata.find('arxiv:abstract', NAMESPACE).text).split())
   else:
-    raise ValueError(f'Missing abstract for {link(arxiv_id)}')
+    raise ValueError(f'Missing abstract')
   
   # Extract categories
   if metadata.find('arxiv:categories', NAMESPACE) is not None:
     paper['categories'] = [x for x in metadata.find('arxiv:categories', NAMESPACE).text.split()]
   else:
-    raise ValueError(f'Missing categories for {link(arxiv_id)}')
+    raise ValueError(f'Missing categories')
 
   # Extract non-obligatory fields
   paper['published'] = metadata.find('arxiv:journal-ref', NAMESPACE).text \
@@ -133,8 +161,8 @@ def get_paper_oaipmh(paper):
   return True
 
 
-def get_full_month_oaipmh(year, month):
-  '''Get metadata for papers in a given month using the arXiv OAI-PMH.'''
+def fetch_full_month_oaipmh(year, month):
+  '''Fetch metadata for papers in a given month using the arXiv OAI-PMH.'''
 
   # Start with a few days in advance
   if month == 1:
@@ -173,14 +201,13 @@ def get_full_month_oaipmh(year, month):
         'verb': 'ListRecords',
         'resumptionToken': token_elem.text
       }
-      # break
     else:
       print(f'Successfully fetched {link(len(records))} metadata records from '
             f'{link(from_date.strftime("%Y-%m-%d"))} till {link(until_date.strftime("%Y-%m-%d"))}')
       break
 
     # Respect the arXiv guidelines and sleep for 3 seconds before the next request
-    time.sleep(3)
+    time.sleep(5)
 
   return records
 
@@ -229,9 +256,6 @@ def match_paper_metadata(papers, records):
         continue
 
   print(f'Successfully matched {link(len(entries))} papers with metadata')
-  # Check if there are any papers left without metadata
-  if papers:
-    print(f'Yet, {link(len(papers))} papers are still without metadata')
 
   return entries
 
@@ -258,7 +282,7 @@ def download_paper(paper, archive_dir='papers/archives'):
 
 
 def extract_source(archive_name, archive_dir='papers/archives',
-                                extracted_dir='papers/extracted'):
+                                 extracted_dir='papers/extracted'):
   '''Extract the contents of the gzip archive.'''
 
   # Check if we have a gzip archive and extract it
@@ -308,7 +332,9 @@ def extract_plain_text(source_name, sources_dir):
   # Convert to plain text using pylatexenc
   plain_text = postprocess_pylatexenc(
                  clean_pylatexenc(
-                   preprocess_pylatexenc(tex_content)
+                   preprocess_pylatexenc(
+                     tex_content
+                   )
                  )
                )
 

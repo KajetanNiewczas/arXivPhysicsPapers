@@ -180,9 +180,10 @@ def detect_inclusions(tex_content):
   matches = []
   for match in include_input_pattern.finditer(tex_content):
     filename = match.group(3).strip()
-    if not filename.endswith('.tex'):
+    if not filename.endswith('.tex') and not filename.endswith('.sty'):
       filename += '.tex'
-    matches.append(filename)
+    if filename.endswith('.tex'):
+      matches.append(filename)
 
   return matches
 
@@ -211,18 +212,19 @@ def fix_inclusions(tex_contents, main_file):
     for match in include_input_pattern.finditer(main_content):
       # Get the file to include
       filename = match.group(3).strip()
-      if not filename.endswith('.tex'):
+      if not filename.endswith('.tex') and not filename.endswith('.sty'):
         filename += '.tex'
+      if filename.endswith('.tex'):
 
-      # Append content before the match
-      new_content.append(main_content[last_pos:match.start()])
+        # Append content before the match
+        new_content.append(main_content[last_pos:match.start()])
 
-      # Insert the included file
-      new_content.append(tex_contents.pop(filename))
+        # Insert the included file
+        new_content.append(tex_contents.pop(filename))
 
-      # Move forward
-      last_pos = match.end()
-      updated = True
+        # Move forward
+        last_pos = match.end()
+        updated = True
 
     # Append the remaining content
     new_content.append(main_content[last_pos:])

@@ -19,6 +19,13 @@ def preprocess_pylatexenc(tex_content):
   # Remove all hyperlinks
   tex_content = re.sub(r'\\href\{.*?\}\{(.*?)\}', r'\1', tex_content)
 
+  # Remove additional user-defined commands
+  tex_content = re.sub(r'^\s*\\(input|include|def|newcommand)\b.*\n?', '', tex_content, flags=re.MULTILINE)
+
+  # Remove any abstract environment
+  tex_content = remove_abstract_commands(tex_content)
+  tex_content = re.sub(r'\\begin\{abstract\}.*?\\end\{abstract\}', '', tex_content, flags=re.DOTALL)
+
   return tex_content
 
 
@@ -62,3 +69,32 @@ def remove_whitespace(plain_text):
   plain_text = plain_text.replace('\xa0', ' ')
 
   return plain_text
+
+
+def remove_abstract_commands(tex_content):
+  result = []
+  i = 0
+  while i < len(tex_content):
+    if tex_content[i:i+9] == '\\abstract':
+      if tex_content[i+9] != '{':
+        result.append(tex_content[i])
+        i += 1
+        continue
+
+    # We've found \abstract{, now parse until matching closing }
+      brace_depth = 0
+      j = i + 9
+      while j < len(tex_content):
+        if tex_content[j] == '{':
+          brace_depth += 1
+        elif tex_content[j] == '}':
+          brace_depth -= 1
+          if brace_depth == 0:
+            break
+        j += 1
+      i = j + 1  # Skip past the closing }
+    else:
+      result.append(tex_content[i])
+      i += 1
+
+  return ''.join(result)

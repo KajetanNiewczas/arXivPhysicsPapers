@@ -54,9 +54,10 @@ def extract_gzip(archive_name, archive_dir, extracted_dir):
           file_path = os.path.join(paper_dir, original_name)
         else:
           file_path = os.path.join(paper_dir, "source.tex")
-        with open(file_path, 'wb') as f_out:
-          f_out.write(f_in.read())
-          print(f"Extracted contents of {link(archive_path)} to {link(paper_dir)}")
+        with gzip.open(archive_path, 'rb') as f_in:
+          with open(file_path, 'wb') as f_out:
+            f_out.write(f_in.read())
+            print(f"Extracted contents of {link(archive_path)} to {link(paper_dir)}")
         # Extraction complete, remove the archive
         os.remove(archive_path)
         return paper_name
