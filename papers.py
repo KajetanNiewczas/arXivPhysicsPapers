@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import re
 
 from rich import print
 
@@ -31,22 +32,29 @@ from src.bucket_tools import (
 def main():
   '''Main entry point for the script.'''
 
-  # We are writing to papers.jsonl
-  database_file = 'database/papers.jsonl'
-  if not os.path.exists(database_file):
-    open(database_file, 'w').close()
-
   # Make sure we have all the necessary directories
+  database_dir  = 'database'
   archive_dir   = 'papers/archives'
   extracted_dir = 'papers/extracted'
   sources_dir   = 'papers/sources'
+  os.makedirs(database_dir, exist_ok=True)
   os.makedirs(archive_dir,   exist_ok=True)
   os.makedirs(extracted_dir, exist_ok=True)
   os.makedirs(sources_dir,   exist_ok=True)
 
+  # Set the bucket name and database file name
+  bucket_name   = 'arXiv_src_0001_001.tar'
+  database_name = re.sub(r'^arXiv_src_(.*)\.tar$', r'\1.jsonl', bucket_name)
+  database_file = os.path.join(database_dir, database_name)
+  # Guard against overwriting
+  if os.path.exists(database_file):
+    confirm = input(f"File '{database_file}' already exists. Overwrite? [y/N]: ").strip().lower()
+    if confirm != 'y':
+      print("Aborting to prevent overwrite!")
+      exit(0)
+
   # Let's go!
   entries = []
-  bucket_name = 'arXiv_src_0001_001.tar'
   try:
     # Unpack the archive with papers
     papers = extract_bucket_archive(bucket_name, bucket_dir='amazon_s3/files',
