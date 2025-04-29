@@ -335,4 +335,3 @@ def extract_plain_text(source_name, sources_dir):
   print(f'Extracted plain text from {link(source_path)}')
 
   return plain_text
-
